@@ -1,22 +1,19 @@
 import zhttp.service.{ChannelFactory, Client, EventLoopGroup}
 import zio.{Tag, ZIO, ZLayer}
 
-trait NumService:
-  val get: ZIO[Any, Throwable, Int]
+trait NumService[Env]:
+  def get[E <: Env]: ZIO[E, Throwable, Int]
 
-case class NumServiceLive(layers: ZLayer[Any, Nothing, ChannelFactory & EventLoopGroup]) extends NumService:
+class NumServiceLive extends NumService[ChannelFactory & EventLoopGroup]:
   val url = "https://random-num-x5ht4amjia-uc.a.run.app/"
-  val get: ZIO[Any, Throwable, Int] =
-    val z =
-      for
-        resp <- Client.request(url)
-        body <- resp.bodyAsString
-      yield body.toInt
-
-    z.provideLayer(layers)
+  def get[E <: ChannelFactory & EventLoopGroup]: ZIO[E, Throwable, Int] =
+    for
+      resp <- Client.request(url)
+      body <- resp.bodyAsString
+    yield body.toInt
 
 object NumService:
-  val get: ZIO[NumService, Throwable, Int] = ZIO.serviceWithZIO[NumService](_.get)
+  def get[E: Tag]: ZIO[E & NumService[E], Throwable, Int] = ZIO.serviceWithZIO[NumService[E]](_.get)
 
 
 trait WordService:

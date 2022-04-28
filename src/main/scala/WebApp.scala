@@ -1,6 +1,6 @@
 import zhttp.http.{Http, Response}
 import zhttp.service.{ChannelFactory, EventLoopGroup, Server}
-import zio.{ZIO, ZIOAppDefault, ZLayer}
+import zio.{ZEnvironment, ZIO, ZIOAppDefault}
 
 
 object WebApp extends ZIOAppDefault:
@@ -16,7 +16,13 @@ object WebApp extends ZIOAppDefault:
     Http.fromZIO(gibberish.map(Response.text))
 
   def run =
-    val clientLayers = ChannelFactory.auto ++ EventLoopGroup.auto()
-    val layers = ZLayer.succeed(NumServiceLive(clientLayers)) ++ ZLayer.succeed(WordServiceLive(clientLayers))
+    val layers =
+      for
+        channelFactory <- ChannelFactory.auto
+        eventLoopGroup <- EventLoopGroup.auto()
+      yield
+        val numServiceLive = NumServiceLive(channelFactory.get, eventLoopGroup.get)
+        val wordServiceLive = WordServiceLive(channelFactory.get, eventLoopGroup.get)
+        ZEnvironment(numServiceLive, wordServiceLive)
 
     Server.start(8080, app).provideLayer(layers).exitCode

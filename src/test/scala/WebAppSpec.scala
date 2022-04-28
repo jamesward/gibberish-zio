@@ -1,6 +1,6 @@
 import zio.test.*
 import zio.test.Assertion.*
-import zio.{ZIO, ZLayer}
+import zio.ZIO
 
 object WebAppSpec extends ZIOSpecDefault:
 

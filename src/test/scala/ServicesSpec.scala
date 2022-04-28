@@ -3,7 +3,8 @@ import zio.test.Assertion.*
 import zio.{ZIO, ZLayer}
 
 class TestNumService extends NumService:
-  val get: ZIO[Any, Throwable, Int] = ZIO.succeed(5)
+  type Env
+  val get: ZIO[Env, Throwable, Int] = ZIO.succeed(5)
 
 class TestWordService extends WordService:
   val get: ZIO[Any, Throwable, String] = ZIO.succeed("word")

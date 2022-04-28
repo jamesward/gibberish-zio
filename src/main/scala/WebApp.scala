@@ -5,7 +5,7 @@ import zio.{ZIO, ZIOAppDefault, ZLayer}
 
 object WebApp extends ZIOAppDefault:
 
-  def gibberish[E]: ZIO[NumService & WordService, Throwable, String] =
+  def gibberish[E]: ZIO[NumService & WordService & ChannelFactory & EventLoopGroup, Throwable, String] =
     for
       num   <- NumService.get
       reqs  =  Seq.fill(num)(WordService.get)
@@ -16,7 +16,10 @@ object WebApp extends ZIOAppDefault:
     Http.fromZIO(gibberish.map(Response.text))
 
   def run =
-    val clientLayers = ChannelFactory.auto ++ EventLoopGroup.auto()
-    val layers = ZLayer.succeed(NumServiceLive(clientLayers)) ++ ZLayer.succeed(WordServiceLive(clientLayers))
-
-    Server.start(8080, app).provideLayer(layers).exitCode
+    Server.start(8080, app).provide(
+      ChannelFactory.auto, 
+      EventLoopGroup.auto(),
+      ZLayer.succeed(NumServiceLive()),
+      ZLayer.succeed(WordServiceLive())
+      
+    ).exitCode

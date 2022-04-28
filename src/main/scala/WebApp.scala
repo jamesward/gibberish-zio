@@ -5,7 +5,7 @@ import zio.{ZEnvironment, ZIO, ZIOAppDefault}
 
 object WebApp extends ZIOAppDefault:
 
-  def gibberish: ZIO[NumService & WordService, Throwable, String] =
+  val gibberish: ZIO[NumService & WordService, Throwable, String] =
     for
       num   <- NumService.get
       reqs  =  Seq.fill(num)(WordService.get)

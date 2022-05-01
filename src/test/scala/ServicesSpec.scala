@@ -10,18 +10,21 @@ class TestWordService extends WordService:
 
 val serviceLayers = ZLayer.succeed(TestNumService()) ++ ZLayer.succeed(TestWordService())
 
+
 object ServicesSpec extends ZIOSpecDefault:
 
-  val test1 = test("numService"):
-    for
-      num <- NumService.get
-    yield
-      assert(num)(equalTo(5))
+  def spec = suite("gibberish")(
+    test("numService") {
+      for
+        num <- NumService.get
+      yield
+        assert(num)(equalTo(5))
+    },
 
-  val test2 = test("wordService"):
-    for
-      num <- WordService.get
-    yield
-      assert(num)(equalTo("word"))
-
-  def spec = suite("gibberish")(test1, test2).provideLayer(serviceLayers)
+    test("wordService") {
+      for
+        num <- WordService.get
+      yield
+        assert(num)(equalTo("word"))
+    },
+  ).provideLayer(serviceLayers)

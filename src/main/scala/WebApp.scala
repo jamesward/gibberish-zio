@@ -1,28 +1,31 @@
-import zhttp.http.{Http, Response}
+import zhttp.http.{Http, HttpApp, Response}
 import zhttp.service.{ChannelFactory, EventLoopGroup, Server}
-import zio.{ZEnvironment, ZIO, ZIOAppDefault}
-
+import zio.{ZIO, ZIOAppDefault, ZLayer}
 
 object WebApp extends ZIOAppDefault:
 
-  val gibberish: ZIO[NumService & WordService, Throwable, String] =
+  def gibberish: ZIO[NumService & WordService, Throwable, String] =
     for
       num   <- NumService.get
-      reqs  =  Seq.fill(num)(WordService.get)
+      reqs   = Seq.fill(num)(WordService.get)
       words <- ZIO.collectAllPar(reqs)
     yield words.mkString(" ")
 
-  val app =
+  val app: HttpApp[NumService & WordService, Throwable] =
     Http.fromZIO(gibberish.map(Response.text))
 
   def run =
-    val layers =
-      for
-        channelFactory <- ChannelFactory.auto
-        eventLoopGroup <- EventLoopGroup.auto()
-      yield
-        val numServiceLive = NumServiceLive(channelFactory.get, eventLoopGroup.get)
-        val wordServiceLive = WordServiceLive(channelFactory.get, eventLoopGroup.get)
-        ZEnvironment(numServiceLive, wordServiceLive)
+    // alternatively rename this to ULayer[A] since it's aliased to ZLayer[Any, Nothing, A]
+    val channelFactory: ZLayer[Any, Nothing, ChannelFactory] = ChannelFactory.auto
+    val eventLoopGroup: ZLayer[Any, Nothing, EventLoopGroup] = EventLoopGroup.auto()
 
-    Server.start(8080, app).provideLayer(layers).exitCode
+    Server
+      .start(8080, app)
+      .provide(
+        channelFactory,
+        eventLoopGroup,
+        NumService.live,
+        WordService.live
+        //ZLayer.Debug.mermaid  // Uncomment this in order to generate Mermaid.JS graphs
+      )
+      .exitCode
